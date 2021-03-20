@@ -16,14 +16,11 @@ type InstanceId = u64;
 pub trait Erc1155 {
     type ErrorCode = Error;
 
-    // #[ink(extension = 1001, returns_result = false)]
-    // fn fetch_random() -> [u8; 32];
-
     #[ink(extension = 1002, returns_result = false)]
-    fn create_instance(who: AccountId, data: Vec<u8>) -> InstanceId;
+    fn create_instance(data: Vec<u8>) -> InstanceId;
 
     #[ink(extension = 1003, returns_result = false)]
-    fn create_token(who: AccountId, instance_id: InstanceId, token_id: TokenId, is_nf: bool, uri: Vec<u8>);
+    fn create_token(instance_id: InstanceId, token_id: TokenId, is_nf: bool, uri: Vec<u8>);
 
     #[ink(extension = 1004, returns_result = false)]
     fn set_approval_for_all(owner: AccountId, operator: AccountId, instance_id: InstanceId, approved: bool);
@@ -46,9 +43,6 @@ pub trait Erc1155 {
     #[ink(extension = 1010, returns_result = false)]
     fn batch_transfer_from(from: AccountId, to: AccountId, instance_id: InstanceId, token_ids: Vec<TokenId>, amounts: Vec<Balance>);
 
-    // #[ink(extension = 1011, returns_result = false)]
-    // fn approved_or_owner(who: AccountId, account: AccountId) -> bool;
-
     #[ink(extension = 1012, returns_result = false)]
     fn is_approved_for_all(owner: AccountId, operator: AccountId, instance_id: InstanceId) -> bool;
 
@@ -60,7 +54,6 @@ pub trait Erc1155 {
 
     #[ink(extension = 1015, returns_result  = false)]
     fn balance_of_single_owner_batch(owners: AccountId, instance_id: InstanceId, token_ids: Vec<TokenId>) -> Vec<Balance>;
-
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, scale::Encode, scale::Decode)]
@@ -130,9 +123,9 @@ mod subgame2 {
     impl Subgame2 {
         /// Creates a new Subgame2 contract.
         #[ink(constructor)]
-        pub fn new() -> Self {
+        pub fn new(instance_data: Vec<u8>) -> Self {
             let caller = Self::env().caller();
-            let instance_id = Self::env().extension().create_instance(caller, [].to_vec()).unwrap();
+            let instance_id = Self::env().extension().create_instance(instance_data).unwrap();
 
             Self {
                 instance_id,
@@ -153,7 +146,7 @@ mod subgame2 {
                 return Err(Error::OnlyOwner);
             }
 
-            self.env().extension().create_token(caller, self.instance_id, token_id, is_nf, uri.clone())?;
+            self.env().extension().create_token(self.instance_id, token_id, is_nf, uri.clone())?;
             self.token_uri.insert(token_id, uri.clone());
 
             self.env().emit_event(TokenCreated {
